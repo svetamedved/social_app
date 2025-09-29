@@ -20,6 +20,8 @@
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Emoji Picker -->
+    <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js" type="module"></script>
     <%= javascript_importmap_tags %>
   </head>
 
@@ -60,5 +62,43 @@
       <% end %>
 
       <%= yield %>
+    </main>
+
+    <!-- Image Modal -->
+    <div id="image-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden" onclick="closeImageModal()">
+      <div class="max-w-4xl max-h-full p-4">
+        <img id="modal-image" src="" alt="" class="max-w-full max-h-full object-contain">
+        <p id="modal-caption" class="text-white text-center mt-2"></p>
+      </div>
+      <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white text-3xl hover:text-gray-300">
+        ×
+      </button>
+    </div>
+
+    <script>
+      function openImageModal(src, caption) {
+        const modal = document.getElementById('image-modal');
+        const modalImage = document.getElementById('modal-image');
+        const modalCaption = document.getElementById('modal-caption');
+
+        modalImage.src = src;
+        modalCaption.textContent = caption;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeImageModal() {
+        const modal = document.getElementById('image-modal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+      }
+
+      // Close modal with Escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeImageModal();
+        }
+      });
+    </script>
   </body>
 </html>

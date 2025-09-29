@@ -21,9 +21,46 @@
             rows: 3,
             maxlength: 280,
             class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" %>
-        <p class="text-xs text-gray-500 mt-1">
-          <span id="char-count">0</span>/280 characters
-        </p>
+        <div class="flex justify-between items-center mt-2">
+          <div class="flex space-x-2">
+            <button type="button" id="emoji-btn" class="text-gray-500 hover:text-blue-500 p-1 rounded">
+              😊
+            </button>
+            <button type="button" id="gif-btn" class="text-gray-500 hover:text-blue-500 p-1 rounded text-sm font-medium">
+              GIF
+            </button>
+            <label for="post_images" class="text-gray-500 hover:text-blue-500 p-1 rounded cursor-pointer">
+              📷
+              <%= form.file_field :images,
+                  multiple: true,
+                  accept: "image/*",
+                  class: "hidden",
+                  id: "post_images",
+                  onchange: "previewImages(this)" %>
+            </label>
+          </div>
+          <p class="text-xs text-gray-500">
+            <span id="char-count">0</span>/280 characters
+          </p>
+        </div>
+        <!-- Emoji Picker Container -->
+        <div id="emoji-picker" class="hidden mt-2">
+          <emoji-picker></emoji-picker>
+        </div>
+        <!-- GIF Picker Container -->
+        <div id="gif-picker" class="hidden mt-2 max-h-64 overflow-y-auto border rounded-lg p-4 bg-white">
+          <div class="mb-3">
+            <input type="text" id="gif-search" placeholder="Search GIFs..."
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+          </div>
+          <div id="gif-results" class="grid grid-cols-2 gap-2">
+          </div>
+        </div>
+        <!-- Image Preview Container -->
+        <div id="image-preview" class="hidden mt-2">
+          <div class="grid grid-cols-2 gap-2" id="preview-grid">
+          </div>
+        </div>
       </div>
 
       <div class="flex justify-end">
@@ -63,6 +100,21 @@
               <div class="mt-2">
                 <p class="text-gray-900 whitespace-pre-wrap"><%= simple_format(post.content) %></p>
               </div>
+
+              <!-- Post Images -->
+              <% if post.images.any? %>
+                <div class="mt-3">
+                  <div class="grid <%= post.images.count == 1 ? 'grid-cols-1' : 'grid-cols-2' %> gap-2">
+                    <% post.images.each do |image| %>
+                      <div class="relative">
+                        <%= image_tag image.variant(resize_to_limit: [400, 400]),
+                            class: "w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90",
+                            onclick: "openImageModal('#{url_for(image)}', '#{post.user.name} post image')" %>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
 
               <!-- Action Buttons -->
               <div class="flex items-center justify-between mt-4">
@@ -118,5 +170,169 @@
         submitBtn.disabled = false;
       }
     });
+  }
+
+  // Emoji Picker
+  const emojiBtn = document.querySelector('#emoji-btn');
+  const emojiPicker = document.querySelector('#emoji-picker');
+  const gifBtn = document.querySelector('#gif-btn');
+  const gifPicker = document.querySelector('#gif-picker');
+  const gifSearch = document.querySelector('#gif-search');
+  const gifResults = document.querySelector('#gif-results');
+
+  if (emojiBtn && emojiPicker) {
+    emojiBtn.addEventListener('click', function() {
+      emojiPicker.classList.toggle('hidden');
+      gifPicker.classList.add('hidden');
+    });
+
+    // Handle emoji selection
+    document.querySelector('emoji-picker').addEventListener('emoji-click', event => {
+      const emoji = event.detail.emoji.unicode;
+      const currentPos = textarea.selectionStart;
+      const textBefore = textarea.value.substring(0, currentPos);
+      const textAfter = textarea.value.substring(currentPos);
+
+      textarea.value = textBefore + emoji + textAfter;
+      textarea.selectionStart = textarea.selectionEnd = currentPos + emoji.length;
+
+      // Update character count
+      textarea.dispatchEvent(new Event('input'));
+      emojiPicker.classList.add('hidden');
+      textarea.focus();
+    });
+  }
+
+  // GIF Picker
+  if (gifBtn && gifPicker) {
+    gifBtn.addEventListener('click', function() {
+      gifPicker.classList.toggle('hidden');
+      emojiPicker.classList.add('hidden');
+    });
+
+    // GIF Search
+    let searchTimeout;
+    if (gifSearch) {
+      gifSearch.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+
+        if (query.length > 2) {
+          searchTimeout = setTimeout(() => {
+            searchGifs(query);
+          }, 300);
+        } else {
+          gifResults.innerHTML = '';
+        }
+      });
+    }
+  }
+
+  // Search GIFs using GIPHY API (you'll need to get a free API key)
+  async function searchGifs(query) {
+    const apiKey = 'your_giphy_api_key_here'; // Replace with actual API key
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${query}&limit=8`;
+
+    try {
+      // For demo purposes, show placeholder GIFs
+      showPlaceholderGifs(query);
+    } catch (error) {
+      console.error('Error fetching GIFs:', error);
+      gifResults.innerHTML = '<p class="text-gray-500 text-sm">Error loading GIFs</p>';
+    }
+  }
+
+  // Show placeholder GIFs for demo
+  function showPlaceholderGifs(query) {
+    const placeholderGifs = [
+      'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif',
+      'https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif',
+      'https://media.giphy.com/media/3o6Zt481isNVuQI1l6/giphy.gif',
+      'https://media.giphy.com/media/l0HlvtIPzPdt2usKs/giphy.gif'
+    ];
+
+    gifResults.innerHTML = '';
+    placeholderGifs.forEach(url => {
+      const gifDiv = document.createElement('div');
+      gifDiv.innerHTML = `
+        <img src="${url}" class="w-full h-20 object-cover rounded cursor-pointer hover:opacity-75"
+             onclick="insertGif('${url}')" alt="GIF">
+      `;
+      gifResults.appendChild(gifDiv);
+    });
+  }
+
+  // Insert GIF into textarea
+  function insertGif(gifUrl) {
+    const gifText = ` [GIF: ${gifUrl}] `;
+    const currentPos = textarea.selectionStart;
+    const textBefore = textarea.value.substring(0, currentPos);
+    const textAfter = textarea.value.substring(currentPos);
+
+    textarea.value = textBefore + gifText + textAfter;
+    textarea.selectionStart = textarea.selectionEnd = currentPos + gifText.length;
+
+    // Update character count
+    textarea.dispatchEvent(new Event('input'));
+    gifPicker.classList.add('hidden');
+    textarea.focus();
+  }
+
+  // Close pickers when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('#emoji-picker') && !event.target.closest('#emoji-btn')) {
+      emojiPicker?.classList.add('hidden');
+    }
+    if (!event.target.closest('#gif-picker') && !event.target.closest('#gif-btn')) {
+      gifPicker?.classList.add('hidden');
+    }
+  });
+
+  // Image preview function
+  function previewImages(input) {
+    const preview = document.getElementById('image-preview');
+    const previewGrid = document.getElementById('preview-grid');
+
+    previewGrid.innerHTML = '';
+
+    if (input.files && input.files.length > 0) {
+      preview.classList.remove('hidden');
+
+      Array.from(input.files).forEach((file, index) => {
+        if (index >= 4) return; // Max 4 images
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const imageDiv = document.createElement('div');
+          imageDiv.className = 'relative';
+          imageDiv.innerHTML = `
+            <img src="${e.target.result}" class="w-full h-24 object-cover rounded">
+            <button type="button" onclick="removeImage(${index})"
+                    class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center hover:bg-red-600">
+              ×
+            </button>
+          `;
+          previewGrid.appendChild(imageDiv);
+        };
+        reader.readAsDataURL(file);
+      });
+    } else {
+      preview.classList.add('hidden');
+    }
+  }
+
+  // Remove image function
+  function removeImage(index) {
+    const input = document.getElementById('post_images');
+    const dt = new DataTransfer();
+
+    Array.from(input.files).forEach((file, i) => {
+      if (i !== index) {
+        dt.items.add(file);
+      }
+    });
+
+    input.files = dt.files;
+    previewImages(input);
   }
 </script>

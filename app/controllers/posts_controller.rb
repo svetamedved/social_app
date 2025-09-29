@@ -3,7 +3,7 @@ class PostsController < ApplicationController
   before_action :set_post, only: [:show, :destroy]
 
   def index
-    @posts = Post.includes(:user => :account, :comments).recent.limit(50)
+    @posts = Post.includes(:user => :account).includes(:comments).recent.limit(50)
     @post = current_user.posts.build
   end
 
@@ -13,7 +13,7 @@ class PostsController < ApplicationController
     if @post.save
       redirect_to posts_path, notice: "Post created successfully!"
     else
-      @posts = Post.includes(:user => :account).recent.limit(50)
+      @posts = Post.includes(:user => :account).includes(:comments).recent.limit(50)
       render :index, status: :unprocessable_entity
     end
   end
@@ -39,6 +39,6 @@ class PostsController < ApplicationController
   end
 
   def post_params
-    params.require(:post).permit(:content)
+    params.require(:post).permit(:content, images: [])
   end
 end
