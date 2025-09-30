@@ -11,6 +11,12 @@
           <% end %>
         </ul>
       </div>
+           <!-- other user fields like name, email etc. -->
+      <div class="field">
+        <%= form.label :avatar %>
+        <%= form.file_field :avatar %>
+      </div>
+      <%= form.submit %>
     <% end %>
 
     <div>

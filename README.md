@@ -7,7 +7,7 @@ Social media app built with Rails - user auth, posts, comments
 This README would normally document whatever steps are necessary to get the
 application up and running.
 
-Things you may want to cover:
+Things i may want to cover later:
 
 * Ruby version
 * System dependencies

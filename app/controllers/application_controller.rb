@@ -17,4 +17,11 @@ class ApplicationController < ActionController::Base
   end
 
   helper_method :current_user, :logged_in?
+
+  # If you want to permit avatar params globally, add a method here (optional)
+  protected
+
+  def user_params
+    params.require(:user).permit(:name, :email, :password, :password_confirmation, :avatar)
+  end
 end
